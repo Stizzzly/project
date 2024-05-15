@@ -1,0 +1,86 @@
+import pygame
+import random
+pygame.init()
+WIDTH = 1268
+HEIGHT = 768
+FPS = 30
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Flying Plane")
+clock = pygame.time.Clock()
+plane_image = pygame.transform.scale(pygame.image.load("plen.png").convert_alpha(), (300, 100))
+class Plane(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = plane_image
+        self.rect = self.image.get_rect()
+        self.rect.centerx = WIDTH // 4
+        self.rect.centery = HEIGHT // 2
+        self.speedy = 0
+    def update(self):
+        self.speedy = 0
+        keystate = pygame.key.get_pressed()
+        if keystate[pygame.K_UP]:
+            self.speedy = -5
+        if keystate[pygame.K_DOWN]:
+            self.speedy = 5
+        self.rect.y += self.speedy
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > HEIGHT:
+            self.rect.bottom = HEIGHT
+class Column(pygame.sprite.Sprite):
+    def __init__(self, x, y, height):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.transform.scale(pygame.image.load("bashi.jpg").convert(), (50, height))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+    def update(self):
+        self.rect.x -= 5
+        if self.rect.right < 0:
+            self.kill()
+all_sprites = pygame.sprite.Group()
+columns = pygame.sprite.Group()
+points = 0
+def create_column():
+    column_gap = 259
+    max_column_height = 600
+    top_height = random.randint(200, min(HEIGHT - column_gap - 200, max_column_height))
+    bottom_height = min(HEIGHT - top_height - column_gap, max_column_height)
+    if top_height > (max_column_height / 2):
+        top_height = max_column_height // 2
+        bottom_height = max_column_height // 2
+    top_column = Column(WIDTH, 0, top_height)
+    bottom_column = Column(WIDTH, HEIGHT - bottom_height, bottom_height)
+    all_sprites.add(top_column)
+    all_sprites.add(bottom_column)
+    columns.add(top_column)
+    columns.add(bottom_column)
+plane = Plane()
+all_sprites.add(plane)
+running = True
+while running:
+    clock.tick(FPS)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    all_sprites.update()
+    if len(columns) < 5:
+        create_column()
+    # Check for points condition (e.g., passing a column)
+    for column in columns:
+        if plane.rect.right == column.rect.left:
+            points += 1
+    hit_box = pygame.sprite.Sprite()
+    hit_box.rect = pygame.Rect(plane.rect.centerx - 75, plane.rect.centery - 50, 300, 100)
+    hits = pygame.sprite.spritecollide(hit_box, columns, False)
+
+    if hits:
+        running = False
+    background_image = pygame.image.load("fon.jpg")
+    screen.blit(background_image, (0, 0))
+    all_sprites.draw(screen)
+    pygame.display.flip()
+pygame.quit()
